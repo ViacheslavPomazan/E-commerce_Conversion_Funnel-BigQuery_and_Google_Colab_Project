@@ -1,6 +1,6 @@
 # E-commerce_Conversion_Funnel-BigQuery-Google_Colab_Project 🚀
  
-Welcome to BigQuery and Google Colab Project!
+Welcome! This repository showcases an e-commerce data analysis project powered by BigQuery and Google Colab.
 
 ## Data Source Description 📂
 
@@ -10,7 +10,7 @@ The data source is the BigQuery GA4 public dataset: 'bigquery-public-data.ga4_ob
 
 ### General
 
-Total number of sessions 116514, total number of purchase 1204, CR = 1.03%.
+Total number of sessions 116,514 , total number of purchase 1204, CR = 1.03%.
 
 ### 1. Sessions and Purchases Distribution by Country.
 ![map](image/colab_map1.png)
@@ -38,12 +38,12 @@ Conversion rate across source (data deleted) is higher than others.
 Traffic wihh (data deleted/data deleted) has higher CR than others. Overall trend line shows slight growth by month-end.
 
 ## 6. Purchase CR by Number of Landing Page Visits.
-
+![cr from landing page](image/cr_session_start_count1.png)
 
 Traffic wihh (data deleted/data deleted) has higher CR than others. Overall trend line shows slight growth by month-end.
 
 ## 7. GA4 Ecommerce Event Correlation Matrix.
+![heat map](image/heat_map1.png)
 
-
-1. Strong positive correlations (red zones): begin_checkout ↔ add_payment_info (0.85), add_payment_info ↔ purchase (0.84), begin_checkout ↔ purchase (0.72). 2. Correlation add_to_cart ↔ begin_checkout (0.48) is significantly lower than the conversions from point 1. 3. view_promotion and select_promotion are barely correlated with purchases (~0.14 and 0.03).
+1. Strong positive correlations (red zones): begin_checkout ↔ add_payment_info (0.85), add_payment_info ↔ purchase (0.84), begin_checkout ↔ purchase (0.72). 2. Correlation add_to_cart ↔ begin_checkout (0.48) is significantly lower than the conversions from point 1.  3. view_promotion and select_promotion are barely correlated with purchases (~0.14 and 0.03).
    
