@@ -6,7 +6,7 @@ Welcome! This repository showcases an e-commerce data analysis project powered b
 
 The data source is the BigQuery GA4 public dataset: 'bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*', which provides data for January 2021. The dataset consists of 1,210,147 rows.
 
-## Gallery and Insights 📊🔎
+## Gallery and Insights 📊 💡
 
 ### General
 
@@ -32,18 +32,73 @@ CR from session_start to add_to_cart( ~3.9%) is below the market average (5%). C
 
 Conversion rate across source (data deleted) is higher than others.
 
-## 5. Dynamic Purchase CR by Source/Medium and Its Trend Line.
+### 5. Dynamic Purchase CR by Source/Medium and Its Trend Line.
 ![dynamic cr](image/dynamic_cr1.png)
 
 Traffic wihh (data deleted/data deleted) has higher CR than others. Overall trend line shows slight growth by month-end.
 
-## 6. Purchase CR by Number of Landing Page Visits.
+### 6. Purchase CR by Number of Landing Page Visits.
 ![cr from landing page](image/cr_session_start_count1.png)
 
 Traffic wihh (data deleted/data deleted) has higher CR than others. Overall trend line shows slight growth by month-end.
 
-## 7. GA4 Ecommerce Event Correlation Matrix.
+### 7. GA4 Ecommerce Event Correlation Matrix.
 ![heat map](image/heat_map1.png)
-
-1. Strong positive correlations (red zones): begin_checkout ↔ add_payment_info (0.85), add_payment_info ↔ purchase (0.84), begin_checkout ↔ purchase (0.72). 2. Correlation add_to_cart ↔ begin_checkout (0.48) is significantly lower than the conversions from point 1.  3. view_promotion and select_promotion are barely correlated with purchases (~0.14 and 0.03).
+1) Strong positive correlations (red zones): begin_checkout ↔ add_payment_info (0.85), add_payment_info ↔ purchase (0.84), begin_checkout ↔ purchase (0.72).
+2) Correlation add_to_cart ↔ begin_checkout (0.48) is significantly lower than the conversions from point 1.
+3) Events view_promotion and select_promotion are barely correlated with purchases (~0.14 and 0.03).
    
+## SQL Queries. 🔍
+
+<details>
+<summary>1. Data Extraction from BigQuery and Initial Table Creation.</summary>
+
+ ```sql
+ SELECT timestamp_micros(event_timestamp) AS event_timestamp,
+        user_pseudo_id || '+' || (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS user_session_id,
+        event_name,
+        geo.country AS country,
+        device.category AS device_category,
+        traffic_source.source AS source,
+        traffic_source.medium AS medium,
+        traffic_source.name AS campaign
+ FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*`
+ ORDER BY event_timestamp
+```
+
+</details>
+
+<details>
+<summary>2. Creating Daily Aggregated Event Pivot Table for Funnel Analysis and Conversion Rate Calculation by Acquisition Channels</summary>
+
+ ```sql
+WITH init AS (
+      SELECT date(timestamp_micros(event_timestamp)) as event_date,
+             traffic_source.source AS source,
+             traffic_source.medium AS medium,
+             traffic_source.name AS campaign,
+            user_pseudo_id || (SELECT value.int_value FROM t.event_params  WHERE  key='ga_session_id') AS user_session_id,
+            event_name
+      FROM  `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` t
+      )
+SELECT event_date,
+       source,
+       medium,
+       campaign,
+       COUNT(DISTINCT user_session_id) AS user_sessions_count,
+       COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END) AS session_start,
+       COALESCE(COUNT(DISTINCT CASE WHEN event_name = 'add_to_cart' THEN user_session_id END), 0) /
+            NULLIF(COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END), 0) AS add_to_cart,
+       COALESCE(COUNT(DISTINCT CASE WHEN event_name = 'begin_checkout' THEN user_session_id END), 0) /
+                  NULLIF(COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END), 0) AS begin_checkout,
+       COALESCE(COUNT(DISTINCT CASE WHEN event_name = 'add_shipping_info' THEN user_session_id END), 0) /
+                  NULLIF(COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END), 0) AS add_shipping_info,
+       COALESCE(COUNT(DISTINCT CASE WHEN event_name = 'add_payment_info' THEN user_session_id END), 0) /
+                  NULLIF(COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END), 0) AS add_payment_info,
+       COALESCE(COUNT(DISTINCT CASE WHEN event_name = 'purchase' THEN user_session_id END), 0) /
+                  NULLIF(COUNT(DISTINCT CASE WHEN event_name = 'session_start' THEN user_session_id END), 0) AS purchase
+FROM init
+GROUP BY event_date, source, medium, campaign
+ORDER BY event_date, source, medium
+```
+</details>
