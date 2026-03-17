@@ -227,42 +227,36 @@ ORDER BY p.purchase_event DESC, s.page_path ASC
 <summary><b>Counting purchase conversion correlation with engagement time and the presence of engagement in a session..</b></summary>
 
 ```sql
-with user_sessions as (
-  select
-    user_pseudo_id ||
-      cast((select value.int_value from unnest(event_params) where key = 'ga_session_id') as string)
-      as user_session_id,
-    sum(
-      coalesce(
-        (select value.int_value from unnest(event_params) where key = 'engagement_time_msec'), 0))
-    as total_engagement_time,
-    case
-      when
-        sum(
-          coalesce(
-            safe_cast(
-              (select value.string_value from unnest(event_params) where key = 'session_engaged') as integer), 0)
-        ) > 0
-      then 1
-      else 0
-    end as is_session_engaged
-  from `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` e
-  group by 1
+WITH user_sessions AS (
+     SELECT user_pseudo_id ||
+                 CAST((SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'ga_session_id') AS string) AS user_session_id,
+            SUM(COALESCE((SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'engagement_time_msec'), 0))
+                 AS total_engagement_time,
+            CASE
+                 WHEN SUM(COALESCE(SAFE_CAST(
+                             (SELECT value.string_value FROM unnest(event_params) where key = 'session_engaged') as integer), 0)) > 0
+                 THEN 1
+                 ELSE 0
+            END AS is_session_engaged
+    FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` e
+    GROUP BY 1
 ),
-purchases as (
-  select
-    user_pseudo_id ||
-      cast((select value.int_value from e.event_params where key = 'ga_session_id') as string)
-      as user_session_id
-  from `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` e
-  where
-    event_name = 'purchase'
-    group by user_session_id
+purchases AS (
+    SELECT user_pseudo_id ||
+                 CAST((SELECT value.int_value FROM e.event_params WHERE key = 'ga_session_id') AS string) AS user_session_id
+    FROM `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` e
+    WHERE event_name = 'purchase'
+    GROUP BY user_session_id
 )
-select
-  corr(s.total_engagement_time, case when p.user_session_id is not null then 1 else 0 end) as engagement_time_to_purchase_corr,
-  corr(s.is_session_engaged, case when p.user_session_id is not null then 1 else 0 end) as engaged_session_to_purchase_corr,
-from user_sessions s
-left join purchases p using(user_session_id)
+SELECT
+    CORR(s.total_engagement_time, CASE WHEN p.user_session_id IS NOT NULL THEN 1 ELSE 0 END) AS engagement_time_to_purchase_corr,
+    CORR(s.is_session_engaged, CASE WHEN p.user_session_id IS NOT NULL THEN 1 ELSE 0 END) AS engaged_session_to_purchase_corr,
+FROM user_sessions s
+LEFT JOIN purchases p 
+ON s.user_session_id = p.user_session_id
 ```
 </details>
+
+## Feedback and Collaboration 🙌
+
+If you have any feedback regarding the code, or visualization choices, please open an issue or reach out to me directly. I'm also open to collaboration and welcome any contributions that could enhance the report's functionalities!
