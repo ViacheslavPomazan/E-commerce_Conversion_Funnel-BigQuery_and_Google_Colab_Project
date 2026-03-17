@@ -257,6 +257,46 @@ ON s.user_session_id = p.user_session_id
 ```
 </details>
 
+<details>
+<summary><b>Creating a table to construct a correlation matrix.</b></summary>
+
+```sql
+with user_sessions as (
+  select
+    user_pseudo_id || '+' ||
+      cast((select value.int_value from unnest(event_params) where key = 'ga_session_id') as string)
+      as user_session_id,
+    sum(
+      coalesce(
+        (select value.int_value from unnest(event_params) where key = 'engagement_time_msec'), 0))
+    as engagement_time,
+    case
+      when
+        sum(
+          coalesce(
+            safe_cast(
+              (select value.string_value from unnest(event_params) where key = 'session_engaged') as integer), 0)
+        ) > 0
+      then 1
+      else 0
+    end as is_engaged,
+    max(CASE WHEN event_name = 'session_start' THEN 1 ELSE 0 END) AS session_start,
+    max(CASE WHEN event_name = 'add_to_cart' THEN 1 ELSE 0 END) AS add_to_cart,
+    max(CASE WHEN event_name = 'begin_checkout' THEN 1 ELSE 0 END) AS begin_checkout,
+    max(CASE WHEN event_name = 'add_payment_info' THEN 1 ELSE 0 END) AS add_payment_info,
+    max(CASE WHEN event_name = 'purchase' THEN 1 ELSE 0 END) AS purchase,
+    max(CASE WHEN event_name = 'view_item' THEN 1 ELSE 0 END) AS view_item,
+    max(CASE WHEN event_name = 'select_item' THEN 1 ELSE 0 END) AS select_item,
+    max(CASE WHEN event_name = 'view_promotion' THEN 1 ELSE 0 END) AS view_promotion,
+    max(CASE WHEN event_name = 'select_promotion' THEN 1 ELSE 0 END) AS select_promotion
+  from `bigquery-public-data.ga4_obfuscated_sample_ecommerce.events_2021*` e
+  group by 1
+  )
+select *
+from user_sessions
+```
+</details>
+
 ## Feedback and Collaboration 🙌
 
 If you have any feedback regarding the code, or visualization choices, please open an issue or reach out to me directly. I'm also open to collaboration and welcome any contributions that could enhance the report's functionalities!
