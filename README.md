@@ -25,7 +25,7 @@ The data source is the BigQuery GA4 public dataset: 'bigquery-public-data.ga4_ob
 
 ## ⚙️ Analysis Workflow
 
-### 1. **Data Extraction** 
+### 1. **Data Extraction and Data Preparation with SQL** 
      
 SQL queries utilize `UNNEST` and `REGEXP_EXTRACT` to parse GA4 event parameters and page locations.                       
      Queries used in this project:
@@ -280,13 +280,37 @@ from user_sessions
 ### 2. **Data Cleaning** 
 Handling missing `session_start` events and filtering low-traffic outliers to normalize CR trends.
 
-### 3. **Visual Analysis:** 
+### 3. **Data Analysis**
+Python(Pandas) is used for data analysis. Below is an example.
+
+<details>
+<summary>Counting of the Conversion Funnel by 'event_name' with segmentation by 'device_category' using `map` function.</summary>
+
+```python
+df_group_2 = df.groupby(['event_name', 'device_category']).nunique('user_session_id')
+s_event_count1 = df_group_2['user_session_id']
+s_event_count = s_event_count1.rename('event_count')
+
+#  Sum by event_name
+event_totals = s_event_count.groupby(level='event_name').sum()
+
+#  Create an auxiliary sorting level by total event_count for each event_name
+s_event_count = s_event_count.reset_index()
+s_event_count['event_total'] = s_event_count['event_name'].map(event_totals)
+
+#  Sort by total (desc), then event_name, then device_category
+df_event_count = s_event_count.sort_values(by=['event_total', 'event_name', 'device_category'],
+    ascending=[False, True, True])
+```
+</details>
+
+### 4. **Visual Analysis:** 
     
 *   Logarithmic scales for geographical data to account for USA dominance.
 *   Comparison of Conversion Rates across Mobile, Desktop, and Tablet.
 *   Correlation matrices for all eCommerce events.
 
-##  📊 Gallery
+##  📊 Charts and Conclusions
 
 ### 1. Sessions and Purchases Distribution by Country.
 ![map](image/colab_map1.png)
@@ -325,7 +349,7 @@ Pages with low usage (<50 session_starts) mostly demonstrate a CR above 0.05, wh
 3) Events view_promotion and select_promotion are barely correlated with purchases (~0.14 and 0.03).
    
 
-## 💡 Insights
+## 💡 Key Insights
 
 ### 1. General Performance
 *   **Total Sessions:** 116,514
